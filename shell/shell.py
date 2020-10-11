@@ -8,19 +8,21 @@ Created on Tue Sep 10 14:36:34 2020
 import os, sys, re
 
 ###HELP - recorded class
-#9/9/2020
 # 51:13
 #https://web.microsoftstream.com/video/c29a9a52-ca3d-4f20-b968-c05cdaefbbdc
 
 def redirect(symbol, args):
     indexOfSymbol = args.index(symbol)
-    leftArg = str( args[indexOfSymbol - 1].split() )
-    rightArg = str(args[indexOfSymbol + 1].split() )
+    leftArg = str( args[:indexOfSymbol] )
+    rightArg = str( args[indexOfSymbol + 1:] )
+    
+    # leftArg = str( args[indexOfSymbol - 1] )
+    # rightArg = str( args[indexOfSymbol + 1] )
+    
     # os.write(1, leftArg.encode() )
     # os.write(1, rightArg.encode() )
     # os.write(1, leftArg.encode() )
     # os.write(1, leftArg.type().encode() )
-    # args = args.split(symbol)
     if symbol == '>':  #send left side to right side
         os.close(1)   #prepare to change output, instead of sending to stdout
         sys.stdout = open(rightArg, 'w' )  #write
@@ -42,7 +44,8 @@ def sendToPath(args):
             os.execve(program, args, os.environ) # try to exec program
             
         except FileNotFoundError:             # ...expected
-            pass          
+            os.write(1, "Command not found\n".encode() )
+            sys.exit(1)          
     sys.exit(1)                    # ...fail quietly 
 
 while True:
@@ -93,8 +96,6 @@ while True:
         
         if '|' in userInput:
             indexOfPipe = userInput.index('|')
-            # pipe1 = userInput[indexOfPipe - 1 ]
-            # pipe2 = userInput[indexOfPipe + 1 ]
             pipe1 = userInput[:indexOfPipe]
             pipe2 = userInput[indexOfPipe+1:]
             
