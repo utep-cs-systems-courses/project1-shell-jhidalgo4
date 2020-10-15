@@ -1,5 +1,7 @@
-Hello World!...........
-Line 2
-This is whats inside my t.txt file
-heyyyyyyyyyyyyy
-End of the t.txt file, peace
+Hello this is line 1
+This is my line 2
+Line 3
+Line 4
+Almost at the end line 5
+Line 6
+End line 7

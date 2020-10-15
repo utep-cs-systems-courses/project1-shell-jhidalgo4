@@ -11,42 +11,35 @@ import os, sys, re
 # 51:13
 #https://web.microsoftstream.com/video/c29a9a52-ca3d-4f20-b968-c05cdaefbbdc
 
+
 def redirect(symbol, args):
     indexOfSymbol = args.index(symbol)
-    leftArg = str( args[:indexOfSymbol] )
-    rightArg = str( args[indexOfSymbol + 1:] )
-    
-    # leftArg = str( args[indexOfSymbol - 1] )
-    # rightArg = str( args[indexOfSymbol + 1] )
-    
-    # os.write(1, leftArg.encode() )
-    # os.write(1, rightArg.encode() )
-    # os.write(1, leftArg.encode() )
-    # os.write(1, leftArg.type().encode() )
+    leftArg = args[:indexOfSymbol] 
+    rightArg = args[indexOfSymbol + 1:] 
+
     if symbol == '>':  #send left side to right side
+        # os.write(1, rightArg[0].encode() )
         os.close(1)   #prepare to change output, instead of sending to stdout
-        sys.stdout = open(rightArg, 'w' )  #write
+        sys.stdout = open(rightArg[0], 'w' )  #write
         os.set_inheritable(1, True)
         sendToPath(leftArg )  #send the left side
     else:
+        # os.write(1, leftArg[0].encode() )
         os.close(0)  #prepare to read-in
-        sys.stdin = open(rightArg, 'r')
+        sys.stdin = open(rightArg[0], 'r')
         os.set_inheritable(0, True)
         sendToPath(leftArg )  #send the left side
 
 def sendToPath(args):
+    print('new new')
     for dir in re.split(":", os.environ['PATH']): # try each directory in path
         program = "%s/%s" % (dir, args[0])
         try:
-            # os.write(1, program.encode() )
-            # os.write(1, args.encode() )
-            # os.write(1, str(os.environ).encode() )
-            os.execve(program, args, os.environ) # try to exec program
-            
+            os.execve(program, args, os.environ) # try to exec program            
         except FileNotFoundError:             # ...expected
-            os.write(1, "Command not found\n".encode() )
-            sys.exit(1)          
-    sys.exit(1)                    # ...fail quietly 
+            pass                           # ...fail quietly 
+    # os.write(2, ("Could not exec %s\n" % args[0]).encode() )
+    sys.exit(1)                    
 
 while True:
     #if ps1 is in os enviorment, then set to custom ps1
@@ -75,15 +68,16 @@ while True:
         os.write(1, "EXIT: goodbye...\n".encode() )
         sys.exit(0)
         
-    
     if 'cd' in userInput:
         indexOfCd = userInput.index('cd')
         try:
             os.chdir( userInput[indexOfCd+1] )
         except FileNotFoundError:
-            os.write(1, 'File directory NOT found\n'.encode() )
+            os.write(1, "Could not change file directory\n".encode() )
+            pass
+        continue
     
-    pPID = os.getpid()
+    # pPID = os.getpid()
     rc = os.fork()
     
     #error - fork
@@ -112,7 +106,7 @@ while True:
                 sys.exit(1)
             
             #child fork - success
-            elif pipeFork == 0:
+            if pipeFork == 0:
                 os.close(1) #close std-out so we can write into pipe
                 #connects the cuurent pipe to pw
                 os.dup(pw)  #copies fd table for the old entry
@@ -126,7 +120,7 @@ while True:
                 os.close(0) # close the std-in 
                 os.dup(pr) #put together the pipe with pr
                 os.set_inheritable(0, True)
-                for f in (pr,pw):
+                for f in (pw,pr):
                     os.close(f) # close b/c we already put together
                 sendToPath(pipe2)
                 
@@ -156,9 +150,6 @@ while True:
             # os.write(1, 'parent forking..\n'.encode() )
             os.wait()
 
-    
-        
+########################################
 
-    
-    
     
