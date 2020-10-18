@@ -1,155 +1,141 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Sep 10 14:36:34 2020
+#Created on Tue Sep 10 14:36:34 2020
 
-@author: joaquin
+#@author: joaquin
 """
-import os, sys, re
+import os, sys, time, re
 
-###HELP - recorded class
-# 51:13
-#https://web.microsoftstream.com/video/c29a9a52-ca3d-4f20-b968-c05cdaefbbdc
-
-
-def redirect(symbol, args):
-    indexOfSymbol = args.index(symbol)
-    leftArg = args[:indexOfSymbol] 
-    rightArg = args[indexOfSymbol + 1:] 
-
-    if symbol == '>':  #send left side to right side
-        # os.write(1, rightArg[0].encode() )
-        os.close(1)   #prepare to change output, instead of sending to stdout
-        sys.stdout = open(rightArg[0], 'w' )  #write
-        os.set_inheritable(1, True)
-        sendToPath(leftArg )  #send the left side
-    else:
-        # os.write(1, leftArg[0].encode() )
-        os.close(0)  #prepare to read-in
-        sys.stdin = open(rightArg[0], 'r')
-        os.set_inheritable(0, True)
-        sendToPath(leftArg )  #send the left side
-
-def sendToPath(args):
-    print('new new')
-    for dir in re.split(":", os.environ['PATH']): # try each directory in path
-        program = "%s/%s" % (dir, args[0])
-        try:
-            os.execve(program, args, os.environ) # try to exec program            
-        except FileNotFoundError:             # ...expected
-            pass                           # ...fail quietly 
-    # os.write(2, ("Could not exec %s\n" % args[0]).encode() )
-    sys.exit(1)                    
-
-while True:
-    #if ps1 is in os enviorment, then set to custom ps1
-    if 'PS1' in os.environ:
-        os.write(1, (os.environ['PS1']).encode() )
-    else: #set to default
-        os.write(1, ('$').encode() )
-                
-    #Get user input
-    try:
-        userInput = os.read(0, 128) #read 128 bytes from fd 0
-        # os.write(1, userInput)     #echo
-    except EOFError as Eoferror:
-        print(Eoferror)
-        os.write(1, 'did not read any data before reading of input stream... exit 1'.encode() )
-        sys.exit(1)
-    
-    # userInput = uInput.decode()
-    userInput = userInput.decode().split()
-    
-    if len(userInput) == 0:
-        os.write(1, "User Input is length of 0, try again...\n".encode() )
-        continue
-    
-    if 'exit' in userInput:
-        os.write(1, "EXIT: goodbye...\n".encode() )
-        sys.exit(0)
-        
-    if 'cd' in userInput:
-        indexOfCd = userInput.index('cd')
-        try:
-            os.chdir( userInput[indexOfCd+1] )
-        except FileNotFoundError:
-            os.write(1, "Could not change file directory\n".encode() )
-            pass
-        continue
-    
-    # pPID = os.getpid()
-    rc = os.fork()
-    
-    #error - fork
-    if rc< 0:
-        os.write(1, 'Error fork\n'.encode() )
-        sys.exit(1) #error exit
-    
-    #child - success fork
-    elif rc ==0:
-        
-        if '|' in userInput:
-            indexOfPipe = userInput.index('|')
-            pipe1 = userInput[:indexOfPipe]
-            pipe2 = userInput[indexOfPipe+1:]
-            
-            pr, pw = os.pipe() #returns fd for read and write
-            
-            #obtain the file descriptors for the new pipes being done and set inhertiable to true
-            for fd in (pr,pw):
-                os.set_inheritable(fd, True)
-            
-            pipeFork = os.fork()
-            
-            #Error - fork
-            if pipeFork < 0:
-                sys.exit(1)
-            
-            #child fork - success
-            if pipeFork == 0:
-                os.close(1) #close std-out so we can write into pipe
-                #connects the cuurent pipe to pw
-                os.dup(pw)  #copies fd table for the old entry
-                os.set_inheritable(1, True)
-                for f in (pr,pw):
-                    os.close(f)
-                sendToPath(pipe1 )
-            
-            #parent fork
-            else:
-                os.close(0) # close the std-in 
-                os.dup(pr) #put together the pipe with pr
-                os.set_inheritable(0, True)
-                for f in (pw,pr):
-                    os.close(f) # close b/c we already put together
-                sendToPath(pipe2)
-                
-        if '&' in userInput:
-            indexOfAmber = userInput.index('&')
-            arg = userInput[:indexOfAmber ]
-        
-        if '>' in userInput:
-            redirect('>', userInput)
-            
-        if '<' in userInput:
-            redirect('<', userInput)
-            
-        else:
-            if '/' in userInput[0]:
-                dirProg = userInput[0]
+def path(args):
+        for dir in re.split(":", os.environ['PATH']): # try each directory in the path
+                program = "%s/%s" % (dir, args[0])
                 try:
-                    os.execve(dirProg, userInput, os.environ)
-                except FileNotFoundError:
-                    pass
-            else:
-                sendToPath(userInput)
+                        os.execve(program, args, os.environ) # try to exec program
+                except FileNotFoundError:             # ...expected
+                        pass                              # ...fail quietly
+        sys.exit(1)                 # terminate with error
+        
+        
+def redirect(direction, userInput):
+        userInput = userInput.split(direction)    #Split user input by direction sign
+        if direction == '>':                      #If '>' redirect output into file
+                os.close(1)
+                sys.stdout = open(userInput[1].strip(), "w")  #open and set to write
+                os.set_inheritable(1, True)
+                path(userInput[0].split())
+        else:
+                os.close(0)                       #Redirect input 
+                sys.stdin = open(userInput[1].strip(), 'r')   #open and set to read
+                os.set_inheritable(0, True)
+                path(userInput[0].split())
+while True:
+        #if ps1 is in os enviorment, then set to custom ps1
+        if 'PS1' in os.environ:
+                os.write(1, (os.environ['PS1']).encode() )
+        else: #set to default
+                os.write(1, ('$').encode() )
             
-    #parent fork
-    else:
-        if not '&' in userInput:
-            # os.write(1, 'parent forking..\n'.encode() )
-            os.wait()
+        try:
+                userInput = input() #take input
+        except EOFError:
+                sys.exit(1)
 
-########################################
+        if userInput == "": # Empty input, will prompt again
+                os.write(1, "User Input is length of 0, try again...\n".encode() )
+                continue
+                
+        
+        if 'exit' in userInput:
+                os.write(1, "EXIT: goodbye...\n".encode() )
+                sys.exit(0)
+            
+        # List of args as command line
+        args = userInput.split()
+        
+        if 'cd' in args[0]:
+                try:
+                        os.chdir(args[1]) # change directory 
+                except FileNotFoundError:
+                        os.write(1, "FileNotFoundError: ".encode() )
+                        os.write(1, args[1].encode() )
+                        os.write(1, "\n".encode() )
+                continue
+            
+        rc = os.fork()
+        # os.write(1, "f: ".encode() )
+        # os.write(1, str(os.getpid()).encode() )
+        # os.write(1, "\n".encode() )
+        
+        #error
+        if rc < 0:
+                os.write(1, 'Error fork\n'.encode() )
+                sys.exit(1) #error exit
+            
+        #success child fork
+        elif rc == 0:         
+                if "|" in args: # Piping command
+                        pipe = userInput.split("|")  #cant split list, bug fixed
+                        pipeLeft= pipe[0].split()
+                        pipeRight = pipe[1].split()
 
-    
+                        pRead, pWrite = os.pipe()  # file descriptors pr, pw for reading and writing
+                        
+                        for fd in (pRead, pWrite):
+                                os.set_inheritable(fd, True)
+                                
+                        pipeFork = os.fork()
+                        # os.write(1, "pf: ".encode() )
+                        # os.write(1, str(os.getpid()).encode() )
+                        # os.write(1, "\n".encode() )
+                        
+                        
+                        #Error - fork
+                        if pipeFork < 0:
+                                sys.exit(1)
+                        
+                        #child fork - success
+                        if pipeFork == 0:
+                                os.close(1) #close std-out so we can write into pipe
+                                os.dup(pWrite)  #copies fd table for the old entry
+                                os.set_inheritable(1, True)
+                                for f in (pRead,pWrite):
+                                        os.close(f)
+                                path(pipeLeft)
+                        
+                        #parent fork
+                        else:
+                                os.close(0) # close the std-in 
+                                os.dup(pRead) #put together 
+                                os.set_inheritable(0, True)
+                                for f in (pWrite,pRead):
+                                        os.close(f) # close b/c we already put together
+                                path(pipeRight)
+                            
+        
+                if '&' in userInput: # To run in background
+                        userInput = userInput.split('&')
+                        userInput = userInput[0]
+                        args = userInput.split()
+                        
+                if '>' in userInput:     #If > in input, send to
+                                         #redirect method for output redirection
+                        redirect('>', userInput)
+                elif '<' in userInput:   #Input redirection
+                        redirect('<', userInput)
+                else:
+                        if '/' in args[0]:  #If '/' in user input, try the given path
+                                program = args[0]
+                                try:
+                                        os.execve(program, args, os.environ )
+                                except FileNotFoundError:  #If not found, give error
+                                        pass
+                        else:
+                                path(args)                 
+                                
+        #parent fork
+        else:
+                if not '&' in userInput:
+                        # os.write(1, 'parent forking done..\n'.encode() )
+                        os.wait()
+                
+                

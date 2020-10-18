@@ -1,7 +1,6 @@
-Hello this is line 1
-This is my line 2
-Line 3
-Line 4
-Almost at the end line 5
-Line 6
-End line 7
+Line 1 of code
+Line2
+Line3
+Almost to the end line 4
+Line 5 prepare
+Line 6 end of file
